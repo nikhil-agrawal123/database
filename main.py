@@ -20,8 +20,6 @@ from googletrans import Translator
 
 app = FastAPI()
 load_dotenv()
-translator = Translator()
-
 
 googleclient = genai.Client(api_key = os.getenv("VITE_GOOGLE_GENAI_API_KEY"))
 
