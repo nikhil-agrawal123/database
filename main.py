@@ -26,7 +26,7 @@ googleclient = genai.Client(api_key = os.getenv("VITE_GOOGLE_GENAI_API_KEY"))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Or specify your frontend URL
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
