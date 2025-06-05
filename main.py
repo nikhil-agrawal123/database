@@ -30,8 +30,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+uri = os.getenv("VITE_MONGO_URI")
 
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient(uri)
 db = client["health_chat"]
 fs = gridfs.GridFS(db)
 
