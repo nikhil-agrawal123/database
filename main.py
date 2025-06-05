@@ -1,7 +1,7 @@
-from fastapi import FastAPI, UploadFile, File,Body
+from fastapi import FastAPI, Request, UploadFile, File,Body
 from fastapi.middleware.cors import CORSMiddleware
-from mongoDb import voice_collection
-from mongoDb import  save_voice
+from mongoDb import save_doctor, save_patient, voice_collection
+from mongoDb import get_patient_by_id, get_doctor_by_id, save_meeting, save_voice
 from pymongo import MongoClient
 from fastapi.responses import JSONResponse
 import gridfs
@@ -30,7 +30,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-uri = os.getenv("VITE_MONGO_URI")
+
+@app.post("/meeting")
+async def add_meeting(request: Request):
+    data = await request.json()
+    meeting_id = save_meeting(data)
+    return {"meeting_id": str(meeting_id)}
+
+@app.delete("/meeting/{meeting_id}")
+async def delete_meeting(meeting_id: str):
+    deleted_count = delete_meeting(meeting_id)
+    if deleted_count:
+        return {"detail": "Meeting deleted successfully"}
+    return {"detail": "Meeting not found"}, 404
+
+uri = os.getenv("VITE_MONGODB_URI")
 
 client = MongoClient(uri)
 db = client["health_chat"]
