@@ -13,5 +13,4 @@ google-genai
 python-multipart
 nltk
 numpy
-pickle5
 tensorflow
