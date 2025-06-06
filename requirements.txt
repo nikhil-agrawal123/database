@@ -11,3 +11,7 @@ gtts
 googletrans==4.0.0rc1
 google-genai
 python-multipart
+nltk
+numpy
+pickle5
+tensorflow

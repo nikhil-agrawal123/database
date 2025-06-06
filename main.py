@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, UploadFile, File,Body
 from fastapi.middleware.cors import CORSMiddleware
-from mongoDb import save_doctor, save_patient, voice_collection
-from mongoDb import get_patient_by_id, get_doctor_by_id, save_meeting, save_voice
+from mongoDb import voice_collection
+from mongoDb import save_meeting, save_voice
 from pymongo import MongoClient
 from fastapi.responses import JSONResponse
 import gridfs
@@ -17,6 +17,11 @@ from pydantic import BaseModel
 from gtts import gTTS
 import io
 from googletrans import Translator
+import pickle
+import nltk
+import numpy as np
+import tensorflow as tf
+from nltk.stem import WordNetLemmatizer
 
 app = FastAPI()
 load_dotenv()
@@ -171,3 +176,67 @@ async def tamil(text: Text):
 async def telugu(text: Text):
     translation =  translator.translate(text.text, dest='te')
     return JSONResponse(content={"Translation": translation.text})
+
+class IntentClassifier:
+    def __init__(self, model_path='chatbot_model.h5', words_path='words.pkl', classes_path='classes.pkl'):
+
+        # Load trained model and preprocessed data
+        self.model = tf.keras.models.load_model(model_path)
+        self.words = pickle.load(open(words_path, 'rb'))
+        self.classes = pickle.load(open(classes_path, 'rb'))
+        
+        # Initialize lemmatizer
+        self.lemmatizer = WordNetLemmatizer()
+        self.ignore_letters = ['?', '!', '.', ',', ';', ':']
+        
+        # Confidence threshold
+        self.confidence_threshold = 0.5
+    
+    def clean_sentence(self, sentence):
+        sentence_words = nltk.word_tokenize(sentence.lower())
+        sentence_words = [
+            self.lemmatizer.lemmatize(word) 
+            for word in sentence_words 
+            if word not in self.ignore_letters
+        ]
+        return sentence_words
+    
+    def create_bag_of_words(self, sentence):
+        sentence_words = self.clean_sentence(sentence)
+        bag = [0] * len(self.words)
+        
+        for w in sentence_words:
+            for i, word in enumerate(self.words):
+                if word == w:
+                    bag[i] = 1
+        
+        return np.array(bag)
+    
+    def get_intent(self, sentence):
+        # Create bag of words
+        bow = self.create_bag_of_words(sentence)
+        
+        # Get prediction
+        prediction = self.model.predict(np.array([bow]), verbose=0)[0]
+        
+        # Get the class with highest probability
+        max_index = np.argmax(prediction)
+        predicted_intent = self.classes[max_index]
+        confidence = prediction[max_index]
+        
+        # If confidence is low, default to diagnosis
+        if confidence < self.confidence_threshold:
+            return "diagnosis"
+        
+        return predicted_intent
+
+# Initialize the classifier (do this once)
+classifier = IntentClassifier()
+
+def classify_intent(sentence):
+    return classifier.get_intent(sentence)
+
+@app.post("/detect_intent/")
+async def detect_intent(text: Text):
+    intent = classify_intent(text.text)
+    return JSONResponse(content={"intent": intent})
