@@ -25,6 +25,7 @@ from nltk.stem import WordNetLemmatizer
 
 app = FastAPI()
 load_dotenv()
+nltk.download('punkt_tab')
 
 googleclient = genai.Client(api_key = os.getenv("VITE_GOOGLE_GENAI_API_KEY"))
 
