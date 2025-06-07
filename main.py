@@ -36,8 +36,11 @@ googleclient = genai.Client(api_key = os.getenv("VITE_GOOGLE_GENAI_API_KEY"))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://health-chat-nexus.vercel.app"],  # Or specify your frontend URL
-    allow_credentials=False,
+    allow_origins=[
+        "https://health-chat-nexus.vercel.app",
+        "http://localhost:3000",  # for local dev if needed
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
