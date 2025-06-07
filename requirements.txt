@@ -14,3 +14,6 @@ python-multipart
 nltk
 numpy
 tensorflow
+opencv-python==4.8.1.78
+Pillow==10.1.0
+python-multipart==0.0.6

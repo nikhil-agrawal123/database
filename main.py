@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, UploadFile, File,Body
+from fastapi import FastAPI, Request, UploadFile, File,Body,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from mongoDb import voice_collection
 from mongoDb import save_meeting, save_voice
@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 from fastapi.responses import StreamingResponse
 from bson import ObjectId
 import speech_recognition as sr
+import cv2
+from PIL import Image
 from pydub import AudioSegment
 import tempfile
 from google import genai
@@ -244,3 +246,122 @@ def classify_intent(sentence):
 async def detect_intent(text: Text):
     intent = classify_intent(text.text)
     return JSONResponse(content={"intent": intent})
+
+def preprocess_image(image_bytes: bytes) -> bytes:
+    try:
+        # Convert bytes to numpy array
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            raise ValueError("Invalid image format")
+        
+        # Convert to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # Apply Gaussian blur to reduce noise
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        
+        # Apply adaptive thresholding
+        thresh = cv2.adaptiveThreshold(
+            blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+        )
+        
+        # Encode back to bytes
+        _, buffer = cv2.imencode('.png', thresh)
+        return buffer.tobytes()
+    
+    except Exception as e:
+        return image_bytes  # Return original if preprocessing fails
+
+async def extract_text_with_gemini(image_bytes: bytes) -> str:
+    try:
+        
+        # Convert bytes to PIL Image
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        # Initialize Gemini model
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        
+        # Create prompt for prescription text extraction
+        prompt = """
+        You are an expert medical text extraction system. Please extract all text from this prescription image.
+        
+        Focus on:
+        - Patient information
+        - Doctor information
+        - Medication names and dosages
+        - Instructions for use
+        - Date and other relevant details
+        
+        Please format the extracted text clearly and maintain the structure as much as possible.
+        If you cannot read certain parts, indicate with [UNCLEAR] or [ILLEGIBLE].
+        
+        Return only the extracted text without any additional commentary.
+        """
+        
+        # Generate content
+        response = model.generate_content([prompt, image])
+        
+        if response.text:
+            return response.text.strip()
+        else:
+            return "No text could be extracted from the image."
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Text extraction failed: {str(e)}")
+
+@app.get("/")
+async def root():
+    return {"message": "OCR Prescription Service is running", "status": "healthy"}
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "gemini_configured": bool(os.getenv("VITE_GOOGLE_GENAI_API_KEY")),
+        "service": "OCR Prescription Service"
+    }
+    
+@app.get("/test-gemini")
+async def test_gemini():
+    try:
+        model = genai.GenerativeModel('gemini-1.5-pro')
+        response = model.generate_content("Say hello")
+        return {"success": True, "response": response.text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/extract-text")
+async def extract_prescription_text(file: UploadFile = File(...)):
+
+    # Validate file type
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    # Check file size (max 10MB)
+    if file.size and file.size > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size too large (max 10MB)")
+    
+    try:
+        # Read image bytes
+        image_bytes = await file.read()
+        
+        # Preprocess image
+        processed_image_bytes = preprocess_image(image_bytes)
+        
+        # Extract text using Gemini
+        extracted_text = await extract_text_with_gemini(processed_image_bytes)
+        
+        return JSONResponse(content={
+            "success": True,
+            "extracted_text": extracted_text,
+            "filename": file.filename,
+            "file_size": len(image_bytes),
+            "message": "Text extracted successfully"
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
