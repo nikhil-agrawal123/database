@@ -36,24 +36,11 @@ googleclient = genai.Client(api_key = os.getenv("VITE_GOOGLE_GENAI_API_KEY"))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=["https://health-chat-nexus.vercel.app"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.post("/meeting")
-async def add_meeting(request: Request):
-    data = await request.json()
-    meeting_id = save_meeting(data)
-    return {"meeting_id": str(meeting_id)}
-
-@app.delete("/meeting/{meeting_id}")
-async def delete_meeting(meeting_id: str):
-    deleted_count = delete_meeting(meeting_id)
-    if deleted_count:
-        return {"detail": "Meeting deleted successfully"}
-    return {"detail": "Meeting not found"}, 404
 
 uri = os.getenv("VITE_MONGO_URI")
 
