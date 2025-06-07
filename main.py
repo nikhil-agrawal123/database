@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, UploadFile, File,Body,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from mongoDb import voice_collection
-from mongoDb import save_meeting, save_voice
+from mongoDb import  save_voice
 from pymongo import MongoClient
 from fastapi.responses import JSONResponse
 import gridfs
