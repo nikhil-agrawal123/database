@@ -55,7 +55,7 @@ async def delete_meeting(meeting_id: str):
         return {"detail": "Meeting deleted successfully"}
     return {"detail": "Meeting not found"}, 404
 
-uri = os.getenv("VITE_MONGODB_URI")
+uri = os.getenv("VITE_MONGO_URI")
 
 client = MongoClient(uri)
 db = client["health_chat"]
