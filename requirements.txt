@@ -12,7 +12,7 @@ googletrans==4.0.0rc1
 google-genai
 python-multipart
 nltk
-numpy
+numpy<2.0.0
 tensorflow
 opencv-python==4.8.1.78
 Pillow==10.1.0
