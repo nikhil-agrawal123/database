@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request, UploadFile, File,Body,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from mongoDb import voice_collection
-from mongoDb import  save_voice
+from mongoDb import voice_collection, save_booking,save_voice,save_test, test_collection, booking_collection
 from pymongo import MongoClient
 from fastapi.responses import JSONResponse
 import gridfs
@@ -352,3 +351,82 @@ async def extract_prescription_text(file: UploadFile = File(...)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+    
+
+class TestData(BaseModel):
+    name: str
+    description: str
+    time: str  
+    cost: str
+    category: str
+
+class BookingData(BaseModel):
+    test_id: str
+    user_id: str
+    date: str  
+    address: str
+    time: str
+    status: str = "booked"  # Default status is booked
+
+@app.post("/test")
+async def test_endpoint(test_data: TestData):
+    """
+    Endpoint to save test data to MongoDB.
+    """
+    try:
+        inserted_id = save_test(test_data.dict())
+        return {"status": "success", "inserted_id": str(inserted_id)}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    
+@app.get("/test")
+async def get_test():
+    """
+    Endpoint to retrieve all test data from MongoDB.
+    """
+    try:
+        tests = list(test_collection.find())
+        for test in tests:
+            test["_id"] = str(test["_id"])  # Convert ObjectId to string
+        return {"status": "success", "data": tests}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    
+@app.post("/test/book")
+async def book_test(booking_data: BookingData):
+    """
+    Endpoint to book a test.
+    """
+    try:
+        inserted_id = save_booking(booking_data.dict())
+        return {"status": "success", "inserted_id": str(inserted_id)}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    
+@app.get("/test/booked")
+async def get_booked_tests():
+    """
+    Endpoint to retrieve all booked tests.
+    """
+    try:
+        booked_tests = list(booking_collection.find())
+        for booking in booked_tests:
+            booking["_id"] = str(booking["_id"])  # Convert ObjectId to string
+        return {"status": "success", "data": booked_tests}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    
+from fastapi import HTTPException
+
+@app.delete("/test/book/{booking_id}")
+async def delete_booking(booking_id: str):
+    """
+    Endpoint to delete a booked test by its ID.
+    """
+    try:
+        result = booking_collection.delete_one({"_id": ObjectId(booking_id)})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        return {"status": "success", "deleted_id": booking_id}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

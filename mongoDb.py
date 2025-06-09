@@ -22,3 +22,13 @@ def save_voice(voice_data):
     result = voice_collection.insert_one(voice_data)
     return result.inserted_id
 
+test_collection = db["test"]
+booking_collection = db["booking"]
+
+def save_test(test_data):
+    result = test_collection.insert_one(test_data)
+    return result.inserted_id
+
+def save_booking(booking_data):
+    result = booking_collection.insert_one(booking_data)
+    return result.inserted_id
