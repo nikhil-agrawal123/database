@@ -24,7 +24,6 @@ def save_voice(voice_data):
 
 test_collection = db["test"]
 booking_collection = db["booking"]
-meeting_collection  = db["room_id"]
 
 def save_test(test_data):
     result = test_collection.insert_one(test_data)
@@ -32,8 +31,4 @@ def save_test(test_data):
 
 def save_booking(booking_data):
     result = booking_collection.insert_one(booking_data)
-    return result.inserted_id
-
-def save_meeting(meeting_data):
-    result = meeting_collection.insert_one(meeting_data)
     return result.inserted_id
