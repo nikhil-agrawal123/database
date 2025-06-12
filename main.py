@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, UploadFile, File,Body,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from mongoDb import voice_collection, save_booking,save_voice,save_test, test_collection, booking_collection
+from mongoDb import voice_collection, save_booking,save_voice,save_test, test_collection, booking_collection, room_collection, save_meeting
 from pymongo import MongoClient
 from fastapi.responses import JSONResponse
 import gridfs
@@ -368,6 +368,11 @@ class BookingData(BaseModel):
     time: str
     status: str = "booked"  # Default status is booked
 
+class MeetingData(BaseModel):
+    room_id: str
+    user_id: str
+    doctor_id: str
+
 @app.post("/test")
 async def test_endpoint(test_data: TestData):
     """
@@ -428,5 +433,46 @@ async def delete_booking(booking_id: str):
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Booking not found")
         return {"status": "success", "deleted_id": booking_id}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/meeting")
+async def create_meeting(meeting_data: MeetingData):
+    """
+    Endpoint to create a meeting and save it to MongoDB.
+    """
+    try:
+        inserted_id = save_meeting(meeting_data)
+        return {"status": "success", "inserted_id": str(inserted_id)}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    
+@app.get("/meeting/{doctor_id}")
+async def get_meeting(doctor_id: str = None):
+    """
+    Endpoint to retrieve meetings by doctor ID.
+    If no doctor ID is provided, return all meetings.
+    """
+    try:
+        query = {}
+        if doctor_id:
+            query["doctor_id"] = doctor_id
+        meetings = list(room_collection.find(query))
+        for meeting in meetings:
+            meeting["_id"] = str(meeting["_id"])  # Convert ObjectId to string
+        return {"status": "success", "data": meetings}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    
+@app.delete("/meeting/{room_id}")
+async def delete_meeting(room_id: str):
+    """
+    Endpoint to delete a meeting by its room ID.
+    """
+    try:
+        result = room_collection.delete_one({"_id": ObjectId(room_id)})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Meeting not found")
+        return {"status": "success", "deleted_id": room_id}
     except Exception as e:
         return {"status": "error", "message": str(e)}
