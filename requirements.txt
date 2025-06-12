@@ -2,7 +2,6 @@ fastapi
 uvicorn
 pymongo
 python-dotenv
-gridfs
 pydub
 SpeechRecognition
 google-generativeai
