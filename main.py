@@ -70,9 +70,9 @@ async def record_voice(audio: UploadFile = File(...)):
             try:
                 text = recognizer.recognize_google(audio_data)
             except Exception as e:
-                text = f"Transcription failed: {str(e)}"
+                text = f"{str(e)}"
     except Exception as e:
-        text = f"Audio conversion/transcription failed: {str(e)}"
+        text = f"{str(e)}"
     finally:
         # Clean up temp files
         if os.path.exists(temp_audio_path):
