@@ -5,7 +5,7 @@ python-dotenv
 pydub
 SpeechRecognition
 google-generativeai
-gridfs
+# gridfs
 pydantic
 gtts
 googletrans==4.0.0rc1
