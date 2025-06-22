@@ -15,8 +15,8 @@ except Exception as e:
     print(e)
 
 db = client["health_chat"]
-
 voice_collection = db["voice"]
+chat_history_collection = db["chat_history"]
 
 def save_voice(voice_data):
     result = voice_collection.insert_one(voice_data)
@@ -32,3 +32,7 @@ def save_test(test_data):
 def save_booking(booking_data):
     result = booking_collection.insert_one(booking_data)
     return result.inserted_id
+
+def chat_history(chat_data):
+    chat_history_collection.insert_one(chat_data)
+    return

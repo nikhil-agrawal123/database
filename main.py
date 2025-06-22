@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, UploadFile, File,Body,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from mongoDb import voice_collection, save_booking,save_voice,save_test, test_collection, booking_collection
+from mongoDb import voice_collection, save_booking,save_voice,save_test, test_collection, booking_collection, chat_history_collection,chat_history
 from pymongo import MongoClient
 from fastapi.responses import JSONResponse
 import gridfs
@@ -436,3 +436,31 @@ async def delete_booking(booking_id: str):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+class ChatHistory(BaseModel):
+    user_id: str
+    by: str
+    messages: list
+
+@app.post("/chat_history")
+async def save_chat_history(chat_data: dict):
+    """
+    Endpoint to save chat history.
+    """
+    try:
+        chat_history(chat_data)
+        return {"status": "success", "message": "Chat history saved successfully"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    
+@app.get("/chat_history/{user_id}")
+async def get_chat_history(user_id: str):
+    """
+    Endpoint to retrieve chat history for a specific user.
+    """
+    try:
+        history = list(chat_history_collection.find({"user_id": user_id}))
+        for chat in history:
+            chat["_id"] = str(chat["_id"])  # Convert ObjectId to string
+        return {"status": "success", "data": history}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
